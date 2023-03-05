@@ -1,9 +1,22 @@
 import pandas as pd
 import os
+from sklearn.tree import DecisionTreeClassifier
 from binance.client import Client
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
+
+
+# Define a function to generate the predictions for the DataFrame
+def generate_predictions(df):
+    predictions = []
+    for i in range(len(df)):
+        if i == 0:
+            predictions.append(0)
+        else:
+            if df.iloc[i]['Close'] > df.iloc[i-1]['Close']:
+                predictions.append(1)
+            else:
+                predictions.append(-1)
+    return predictions
+
 
 # Set the API key and secret
 api_key = "key"
@@ -11,72 +24,118 @@ api_secret = "key"
 
 # Set the Binance API URL and connect to the client
 client = Client(api_key, api_secret)
+client_live = Client()
 client.API_URL = 'https://testnet.binance.vision/api'
 
 # Set the directory path where your CSV files are stored
-directory = 'C:/Users/jonat/Documents/crypto/spot/monthly/klines/XRPBNB/1d'
+directory_month = 'C:/Users/jonat/Documents/crypto/spot/monthly/klines/SOLUSDT/1d'
+directory_day = 'C:/Users/jonat/Documents/crypto/spot/daily/klines/SOLUSDT/1d'
 
 # Define the columns to use for scaling and training the model
-cols = ['Open', 'High', 'Low', 'Volume', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume']
+cols = ['Open', 'High', 'Low', 'Volume', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume','Close']
 
 # Create an empty DataFrame to store the concatenated data
 concatenated_df = pd.DataFrame()
 
 # Iterate through each CSV file in the directory and concatenate them
-for filename in os.listdir(directory):
+for filename in os.listdir(directory_month):
     if filename.endswith(".csv"):
         # Read the CSV file into a DataFrame
-        filepath = os.path.join(directory, filename)
+        filepath = os.path.join(directory_month, filename)
         df = pd.read_csv(filepath, header=None, names=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
-        
+
         # Append the DataFrame to the concatenated DataFrame
         concatenated_df = pd.concat([concatenated_df, df])
 
-# Preprocess the concatenated data
-concatenated_df.drop('Ignore', axis=1, inplace=True)
-cols_to_scale = [col for col in cols if col != 'Close'] # Only scale columns other than 'Close'
-scaler = MinMaxScaler()
-scaled_data = scaler.fit_transform(concatenated_df[cols_to_scale])
-scaled_df = pd.DataFrame(scaled_data, columns=cols_to_scale)
+for filename in os.listdir(directory_day):
+    if filename.endswith(".csv"):
+        # Read the CSV file into a DataFrame
+        filepath = os.path.join(directory_day, filename)
+        df = pd.read_csv(filepath, header=None, names=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
+
+        # Append the DataFrame to the concatenated DataFrame
+        concatenated_df = pd.concat([concatenated_df, df])
+
+
+# Add the 'Prediction' column to the DataFrame
+concatenated_df['Prediction'] = generate_predictions(concatenated_df)
 
 
 # Split the data into training and testing sets
-print(scaled_df.columns)
-X = scaled_df.drop('Close', axis=1)
-y = scaled_df.drop('Close', axis=1)['Open']
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+train_size = int(len(concatenated_df) * 0.8)
+train_df = concatenated_df[:train_size]
+test_df = concatenated_df[train_size:]
 
+# Extract the features and labels for the training and testing sets
+train_X = train_df[cols]
+train_y = train_df['Prediction']
+test_X = test_df[cols]
+test_y = test_df['Prediction']
+test_X = test_X[train_X.columns]
 
-# Remove the 'Close' column from the X_train DataFrame
-X_train = X_train.drop('Close', axis=1)
+# Get the current price of the cryptocurrency
+ticker = 'SOLUSDT'
+ticker_info = client_live.get_symbol_ticker(symbol=ticker)
+current_price = float(ticker_info['price'])
 
-# Create a linear regression model
-model = LinearRegression()
+# Create a DataFrame with the current price and historical data of the last row
+last_row = concatenated_df.tail(1)
+current_data = pd.DataFrame([last_row[cols].values.tolist()[0] + [current_price]], columns=cols+['x'])
+current_data = current_data.drop(columns=['x'])
 
-# Train the model on the training data
-model.fit(X_train, y_train)
+# Train the decision tree classifier
+model = DecisionTreeClassifier()
+model.fit(train_X, train_y)
 
-# Get the latest close price from Binance
-coin_price = client.get_symbol_ticker(symbol="XRPBNB")['price']
+# Define the parameters for the Kelly Criterion
+win_rate = 0.5 # Winning probability of the trading strategy
+payoff_ratio = 2 # The ratio of the potential profit to the potential loss
+risk = 0.1 # The percentage of the portfolio that can be risked on a single trade
 
-# Scale the latest close price and predict the next close price
-latest_data = concatenated_df[cols].tail(1)
-latest_scaled_data = scaler.transform(latest_data.drop('Close', axis=1))
-next_close = model.predict(latest_scaled_data)[0]
+# Calculate the Kelly Criterion fraction
+kelly_fraction = (win_rate * payoff_ratio - (1 - win_rate)) / payoff_ratio
 
-# Calculate the Kelly criterion fraction
-fraction = (next_close / float(coin_price) - 1) / (1 - next_close / float(coin_price))
+# Make a prediction on whether to buy, sell or hold based on the machine learning model
+prediction = model.predict(current_data)
+print(prediction)
 
-# Implement the trading strategy
-if fraction > 0 and fraction <= 1:
-    print("Buy signal detected")
-    # Buy logic
-    # ...
-elif fraction < 0:
-    print("Sell signal detected")
-    # Sell logic
-    # ...
+# Determine the position size based on the Kelly Criterion
+balance = client.get_asset_balance(asset='USDT')
+available_balance = float(balance['free'])
+print("available balance", available_balance)
+position_size = available_balance * kelly_fraction * risk / current_price
+
+# Calculate the potential profit for the trade
+if prediction == 1: # buy signal
+    potential_profit = (1 + payoff_ratio) * position_size - position_size
+else: # not a buy signal
+    potential_profit = 0
+
+# Calculate the Kelly Criterion fraction based on the potential profit
+if potential_profit > 0:
+    kelly_fraction = (win_rate * payoff_ratio - (1 - win_rate)) / payoff_ratio
 else:
-    print("Hold signal detected")
-    # Hold logic
-    # ...
+    kelly_fraction = 0
+
+# Determine the position size based on the updated Kelly Criterion fraction
+position_size = available_balance * kelly_fraction * risk / current_price
+
+# Place a buy order if the prediction is 1 (buy signal) and the potential profit is positive
+if prediction == 1 and potential_profit > 0:
+    # order = client.order_market_buy(
+    #     symbol=ticker,
+    #     quantity=position_size
+    # )
+    print("Bought ", position_size, ticker, " at ", current_price)
+
+# Place a sell order if the prediction is -1 (sell signal)
+elif prediction == -1:
+    # order = client.order_market_sell(
+    #     symbol=ticker,
+    #     quantity=position_size
+    # )
+    print("Sold ", position_size, ticker, " at ", current_price)
+
+# Do nothing if the prediction is 0 (hold signal) or the potential profit is negative
+else:
+    print("Holding ", ticker)
