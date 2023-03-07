@@ -1,14 +1,45 @@
 import pandas as pd
+import os
 
-# Load klines data from CSV file
-data = pd.read_csv('spot/monthly/klines/SOLUSDT/1d/SOLUSDT-1d-2023-01.csv')
+# Set the directory path where your CSV files are stored
+directory_month = 'C:/Users/jayes/Documents/Algo Trading Project - Johnny/spot/monthly/klines/SOLUSDT/1d'
+directory_day = 'C:/Users/jonat/Documents/Algo Trading Project - Johnny/spot/daily/klines/SOLUSDT/1d'
+
+# Define the columns to use for scaling and training the model
+cols = ['Open', 'High', 'Low', 'Volume', 'Quote asset volume',
+         'Number of trades', 'Taker buy base asset volume',
+           'Taker buy quote asset volume','Close']
+
+# Create an empty DataFrame to store the concatenated data
+concatenated_df = pd.DataFrame()
+
+# Iterate through each CSV file in the directory and concatenate them
+for filename in os.listdir(directory_month):
+    if filename.endswith(".csv"):
+        # Read the CSV file into a DataFrame
+        filepath = os.path.join(directory_month, filename)
+        df = pd.read_csv(filepath, header=None, names=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
+
+        # Append the DataFrame to the concatenated DataFrame
+        concatenated_df = pd.concat([concatenated_df, df])
+
+for filename in os.listdir(directory_day):
+    if filename.endswith(".csv"):
+        # Read the CSV file into a DataFrame
+        filepath = os.path.join(directory_day, filename)
+        df = pd.read_csv(filepath, header=None, names=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume', 'Close time', 'Quote asset volume', 'Number of trades', 'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
+
+        # Append the DataFrame to the concatenated DataFrame
+        concatenated_df = pd.concat([concatenated_df, df])
+
+
 
 # Convert timestamp to datetime and set as index
-data['Open Time'] = pd.to_datetime(data['Open Time'], unit='ms')
-data.set_index('Open Time', inplace=True)
+concatenated_df['Open Time'] = pd.to_datetime(concatenated_df['Open Time'], unit='ms')
+concatenated_df.set_index('Open Time', inplace=True)
 
 # Calculate SMA for last 30 days
-sma = data['Close'].rolling(window=30).mean()
+sma = concatenated_df['Close'].rolling(window=30).mean()
 
 # Print SMA values
 print(sma)
