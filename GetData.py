@@ -1,6 +1,9 @@
 # Importing necessary modules
 from binance_historical_data import BinanceDataDumper
 import datetime
+import pandas as pd
+import os
+from datetime import datetime, timedelta
 
 # Creating an instance of BinanceDataDumper class
 # Setting the path to the directory where dumped data will be saved,
@@ -32,3 +35,16 @@ data_dumper.dump_data(
 
 # Deleting any outdated daily results that are no longer needed.
 data_dumper.delete_outdated_daily_results()
+
+
+# Starting to get hourly klines for the last 30 days
+dumper = BinanceDataDumper(
+    path_dir_where_to_dump=r"C:\Users\jayes\Documents\Algo Trading Project - Johnny\spot\hours",
+    data_type="klines",
+    data_frequency="1h",
+)
+dumper.dump_data(
+    tickers=["SOLUSDT"],
+    date_start= datetime.date(datetime.utcnow() - timedelta(days=30)),
+    is_to_update_existing=True
+) 
