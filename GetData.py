@@ -3,14 +3,13 @@ from binance_historical_data import BinanceDataDumper
 import os
 import datetime
 
-
 #todays date
 today = datetime.date.today()
 
 
 def delete_old_files():
     # Set the directory where the files are saved
-    data_dir = r'C:\Users\jonat\Documents\crypto\spot2\spot\monthly\klines\SOLUSDT\1h'
+    data_dir = r'<<insert_directory_here>>'
     
     # Get the current month and last month
     today = datetime.date.today()
@@ -50,12 +49,12 @@ def delete_old_files():
 
 
 
-
 # Creating an instance of BinanceDataDumper class
 # Setting the path to the directory where dumped data will be saved,
 # the type of data to be dumped (klines), and the frequency of the data (daily).
 data_dumper = BinanceDataDumper(
-    path_dir_where_to_dump=r"C:\Users\jonat\Documents\crypto",
+
+    path_dir_where_to_dump=r"<<insert_directory_here>>",
     data_type="klines",
     data_frequency="1d",
 )
@@ -63,7 +62,7 @@ data_dumper = BinanceDataDumper(
 
 #Data Dumper 2 for last months hourly data
 data_dumper2 = BinanceDataDumper(
-    path_dir_where_to_dump=r"C:\Users\jonat\Documents\crypto\spot2",
+    path_dir_where_to_dump=r"<<insert_directory_here>>",
     data_type="klines",
     data_frequency="1h",
 )
@@ -94,7 +93,9 @@ data_dumper2.dump_data(
 
 # Updating existing data for this ticker.
 data_dumper.dump_data(
+
     tickers=["SOLUSDT"],
+    date_start= datetime.date(datetime.utcnow() - timedelta(days=30)),
     is_to_update_existing=True
 )
 
@@ -111,3 +112,4 @@ data_dumper.delete_outdated_daily_results()
 
 #Deleting any outdated hourly results that aren't needed.
 delete_old_files()
+
