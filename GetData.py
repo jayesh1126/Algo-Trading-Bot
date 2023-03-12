@@ -95,7 +95,7 @@ data_dumper2.dump_data(
 data_dumper.dump_data(
 
     tickers=["SOLUSDT"],
-    date_start= datetime.date(datetime.utcnow() - timedelta(days=30)),
+    date_start= datetime.date(datetime.utcnow() - datetime.timedelta(days=30)),
     is_to_update_existing=True
 )
 
