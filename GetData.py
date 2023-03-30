@@ -1,6 +1,7 @@
 # Importing necessary modules
 from binance_historical_data import BinanceDataDumper
 import os
+from datetime import datetime as dt, timedelta
 import datetime
 
 #todays date
@@ -9,7 +10,7 @@ today = datetime.date.today()
 
 def delete_old_files():
     # Set the directory where the files are saved
-    data_dir = r'<<insert_directory_here>>'
+    data_dir = r'C:\Users\jayes\Documents\Algo Trading Project - Johnny\spot2\spot\monthly\klines\SOLUSDT\1h'
     
     # Get the current month and last month
     today = datetime.date.today()
@@ -54,7 +55,7 @@ def delete_old_files():
 # the type of data to be dumped (klines), and the frequency of the data (daily).
 data_dumper = BinanceDataDumper(
 
-    path_dir_where_to_dump=r"<<insert_directory_here>>",
+    path_dir_where_to_dump=r"C:\Users\jayes\Documents\Algo Trading Project - Johnny",
     data_type="klines",
     data_frequency="1d",
 )
@@ -62,7 +63,7 @@ data_dumper = BinanceDataDumper(
 
 #Data Dumper 2 for last months hourly data
 data_dumper2 = BinanceDataDumper(
-    path_dir_where_to_dump=r"<<insert_directory_here>>",
+    path_dir_where_to_dump=r"C:\Users\jayes\Documents\Algo Trading Project - Johnny\spot2",
     data_type="klines",
     data_frequency="1h",
 )
@@ -70,32 +71,32 @@ data_dumper2 = BinanceDataDumper(
 
 # Dumping historical data for SOLUSDT,
 # excluding the "UST" ticker, and not updating existing data.
-'''
-data_dumper.dump_data(
-    tickers=["SOLUSDT"],
-    date_start=None,
-    date_end=None,
-    is_to_update_existing=False,
-    tickers_to_exclude=["UST"],
-)
-'''
+
+# data_dumper.dump_data(
+#     tickers=["SOLUSDT"],
+#     date_start=None,
+#     date_end=None,
+#     is_to_update_existing=False,
+#     tickers_to_exclude=["UST"],
+# )
+
 
 # Repeat the process for last months hourly data
-'''
-data_dumper2.dump_data(
-    tickers=["SOLUSDT"],
-    date_start=today - datetime.timedelta(days=30),
-    date_end= today,
-    is_to_update_existing=False,
-    tickers_to_exclude=["UST"],
-)
-'''
+
+# data_dumper2.dump_data(
+#     tickers=["SOLUSDT"],
+#     date_start=today - datetime.timedelta(days=30),
+#     date_end= today,
+#     is_to_update_existing=False,
+#     tickers_to_exclude=["UST"],
+# )
+
 
 # Updating existing data for this ticker.
 data_dumper.dump_data(
 
     tickers=["SOLUSDT"],
-    date_start= datetime.date(datetime.utcnow() - datetime.timedelta(days=30)),
+    date_start= dt.date(dt.utcnow() - datetime.timedelta(days=30)),
     is_to_update_existing=True
 )
 
