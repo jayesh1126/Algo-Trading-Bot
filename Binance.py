@@ -42,7 +42,7 @@ bars = client.get_historical_klines('BTCUSDT', '1d', timestamp, limit=1000)
 # delete unwanted data - just keep date, open, high, low, close
 for line in bars:
     del line[5:]
-# option 4 - create a Pandas DataFrame and export to CSV
+# create a Pandas DataFrame and export to CSV
 btc_df = pd.DataFrame(bars, columns=['date', 'open', 'high', 'low', 'close'])
 btc_df.set_index('date', inplace=True)
 print(btc_df.head())
